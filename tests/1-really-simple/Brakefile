@@ -1,0 +1,8 @@
+compiler :gcc
+
+#program :hello do
+#	source hello.c
+#end
+
+task :ququ do
+end

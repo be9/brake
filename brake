@@ -1,0 +1,113 @@
+#!/usr/bin/env ruby
+
+require 'rake'
+require 'yaml'
+require 'singleton'
+
+$LOAD_PATH.unshift(File.expand_path(File.dirname(__FILE__)))
+
+module Brake
+  class << self
+    # Current Brake Application
+    def application
+      unless @application
+        # Tie rake stuff to our application object
+        Rake.application = @application = Brake::Application.new
+      end
+
+      @application
+    end
+
+    def cache
+      @cache ||= Brake::Cache.new
+    end
+  end
+
+  class Cache
+    def initialize
+      load
+
+      @cache ||= {}
+      @cache[:compilers] ||= {}
+    end
+
+    def [](key)
+      @cache[key]
+    end
+
+    def []=(key, val)
+      @cache[key] = val
+    end
+
+    def load
+      @cache_file_name ||= File.join(Brake.application.original_dir, "cache.yaml")
+      @cache = YAML.load(File.open(@cache_file_name)) rescue {}
+    end
+
+    def save
+      File.open(@cache_file_name, "w") do |f|
+        YAML.dump(@cache, f)
+      end
+    end
+  end
+
+  module Compilers
+    class Compiler
+      def initialize(name, options)
+        @name = name
+      end
+
+      def probed?
+        Brake.cache[:compilers][@name][:probed] rescue false
+      end
+
+      def probe_ok(results = {})
+        Brake.cache[:compilers][@name] = results.merge({:probed => true})
+        Brake.cache.save
+      end
+    end
+
+    class << self
+      def register(type, klass)
+        @classes ||= Hash.new
+        @classes[type] ||= klass
+      end
+
+      def [](type)
+        @classes[type]
+      end
+    end
+  end
+
+  class Application < Rake::Application
+    DEFAULT_BRAKEFILES = ['brakefile', 'Brakefile', 'brakefile.rb', 'Brakefile.rb'].freeze
+
+    attr_reader :original_dir
+
+    def initialize
+      super
+      @rakefiles = DEFAULT_BRAKEFILES.dup
+      @compilers = {}
+    end
+    
+    def run
+      standard_exception_handling do
+        init('brake')
+        load_rakefile
+        top_level
+      end
+    end
+
+    def add_compiler(name, klass, options)
+      @compilers[name] ||= klass.new(name, options)
+    end
+  end
+end
+
+def compiler(type, options = {})
+  require "compilers/#{type}"
+
+  Brake.application.add_compiler(options[:name] || type, Brake::Compilers[type], options)
+end
+
+Brake.application.run
