@@ -3,18 +3,33 @@
 module Brake
   module Compilers
     class Gcc < Compiler
-      def initialize(name, options)
-        super
-        probe unless probed?
-      end
+      include Brake::Checks
 
-      def probe
-        print "-- probing gcc\n"
+      def detect
+        @options[:only_c] ||= false
 
-        probe_ok
+        cc = ENV["CC"] || find_program("gcc") || find_program("cc")
+
+        unless cc
+          log "GNU C compiler not found", :fatal
+          return false
+        end
+
+        @conf[:cc] = cc
+
+        logn "Checking for working C compiler... "
+
+        true
       end
     end
 
     register :gcc, Gcc
   end
 end
+
+<<FROMCMAKE
+
+
+
+
+FROMCMAKE

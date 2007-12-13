@@ -4,9 +4,29 @@ require 'rake'
 require 'yaml'
 require 'singleton'
 
+ON_WINDOWS = RUBY_PLATFORM =~ /(:?mswin|mingw32)/
+
 $LOAD_PATH.unshift(File.expand_path(File.dirname(__FILE__)))
 
 module Brake
+  module Logging
+    # Log line
+    def log(s, level = :normal)
+       logn(s)
+       print "\n"
+    end
+
+    # Log, but stay on the same line 
+    def logn(s, level = :normal)
+      print "-- " + s
+    end
+    
+    # Continue log line
+    def logc(s)
+      print s, "\n"
+    end
+  end
+
   class << self
     # Current Brake Application
     def application
@@ -40,7 +60,7 @@ module Brake
     end
 
     def load
-      @cache_file_name ||= File.join(Brake.application.original_dir, "cache.yaml")
+      @cache_file_name ||= File.join(Brake.application.original_dir, ".cache.yaml")
       @cache = YAML.load(File.open(@cache_file_name)) rescue {}
     end
 
@@ -51,19 +71,59 @@ module Brake
     end
   end
 
+  module Checks
+    include Brake::Logging
+
+    def find_program(program_name, paths = [])
+      test_block = 
+        if ON_WINDOWS then 
+          proc do |f| File.exists?(f) end
+        else
+          proc do |f| File.executable?(f) end
+        end
+
+      logn("Checking for program #{program_name}...")
+
+      (paths + ENV['PATH'].split(':')).each do |path|
+        fname = File.join(path, program_name)
+        fname += ".exe" if ON_WINDOWS
+    
+        if test_block.call(fname)
+          fname = File.expand_path(fname)
+
+          logc(" found at #{fname}")
+
+          return fname
+        end
+      end
+    
+      logc(" not found")
+      nil
+    end
+  end
+
   module Compilers
     class Compiler
+      include Brake::Logging
+
       def initialize(name, options)
         @name = name
+        @options = options
       end
 
       def probed?
         Brake.cache[:compilers][@name][:probed] rescue false
       end
 
-      def probe_ok(results = {})
-        Brake.cache[:compilers][@name] = results.merge({:probed => true})
-        Brake.cache.save
+      def probe
+        unless probed?
+          @conf = {}
+
+          if detect
+            Brake.cache[:compilers][@name] = @conf.merge({:probed => true})
+            Brake.cache.save
+          end
+        end
       end
     end
 
@@ -100,6 +160,8 @@ module Brake
 
     def add_compiler(name, klass, options)
       @compilers[name] ||= klass.new(name, options)
+
+      @compilers[name].probe
     end
   end
 end
