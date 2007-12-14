@@ -14,7 +14,7 @@ module Brake
     end
     
     # Continue log line
-    def logc(s)
+    def logc(s, level = :fatal)
       print s, "\n"
     end
   end

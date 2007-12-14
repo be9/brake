@@ -53,43 +53,6 @@ module Brake
     end
   end
 
-  module Compilers
-    class Compiler
-      include Brake::Logging
-
-      def initialize(name, options)
-        @name = name
-        @options = options
-      end
-
-      def probed?
-        Brake.cache[:compilers][@name][:probed] rescue false
-      end
-
-      def probe
-        unless probed?
-          @conf = {}
-
-          if detect
-            Brake.cache[:compilers][@name] = @conf.merge({:probed => true})
-            Brake.cache.save
-          end
-        end
-      end
-    end
-
-    class << self
-      def register(type, klass)
-        @classes ||= Hash.new
-        @classes[type] ||= klass
-      end
-
-      def [](type)
-        @classes[type]
-      end
-    end
-  end
-
   class Application < Rake::Application
     DEFAULT_BRAKEFILES = ['brakefile', 'Brakefile', 'brakefile.rb', 'Brakefile.rb'].freeze
 

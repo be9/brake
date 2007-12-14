@@ -1,4 +1,5 @@
 require 'logging'
+require 'escape'
 
 module Brake
   module Checks
@@ -46,10 +47,13 @@ module Brake
       raise CheckException, "Compiler returned an error" unless compiler.oneliner(source, target)
       raise CheckException, "Compiler stated success, but no target was found" unless File.exists? target
 
+      results = `#{Shell.escape(target)}`
+      raise CheckException, "Command failed" if $? != 0
+
     rescue CheckException
-      return false
+      return nil
     else
-      return true
+      return results
     ensure
       File.unlink(source) if File.exists? source
       File.unlink(target) if File.exists? target

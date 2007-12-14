@@ -6,7 +6,7 @@ include Brake::Checks
 
 describe "find_program" do
   before :all do
-    @tmpdir = File.join(Dir.tmpdir, "brakemakespec#{$$}")
+    @tmpdir = File.join(Dir.tmpdir, "brakecheckspec#{$$}")
     Dir.mkdir @tmpdir
 
     @fakeruby = File.join(@tmpdir, "ruby")
@@ -63,9 +63,12 @@ describe "try_compile_and_run" do
   before :all do
     @saveddir = Dir.pwd
     Dir.chdir File.dirname(__FILE__)
+
+    @files_in_tmp = Dir["tmp/*"]
   end
 
   after :all do
+
     Dir.chdir @saveddir
   end
 
@@ -123,12 +126,37 @@ describe "try_compile_and_run" do
   it "should return false if compiler failed" do
     @compiler.should_receive(:oneliner).once.and_return(false)
 
-    try_compile_and_run('name', '', 'c', @compiler).should == false
+    try_compile_and_run('name', '', 'c', @compiler).should.nil?
   end
 
-  it "should return false if compiler succeeded, but no target found" do
+  it "should return nil if compiler succeeded, but no target found" do
     @compiler.should_receive(:oneliner).once.and_return(true)
 
-    try_compile_and_run('name', '', 'c', @compiler).should == false
+    try_compile_and_run('name', '', 'c', @compiler).should.nil? 
+  end
+  
+  it "should return "" if compiler succeeded and target ran successfully" do
+    @compiler.should_receive(:oneliner) do |source, target|
+      File.symlink("/bin/true", target)
+
+      true
+    end
+
+    try_compile_and_run('name', '', 'c', @compiler).should == ""
+  end
+  
+  it "should return nil if compiler succeeded, but target failed" do
+    @compiler.should_receive(:oneliner) do |source, target|
+      File.symlink("/bin/false", target)
+
+      true
+    end
+
+    try_compile_and_run('name', '', 'c', @compiler).should.nil?
+  end
+
+  # this is the last one
+  it "should not leave any files in tmp" do
+    Dir["tmp/*"].should == @files_in_tmp
   end
 end

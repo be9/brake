@@ -1,10 +1,12 @@
 require 'checks'
+require 'compilers'
+require 'escape'
 
 module Brake
   module Compilers
     class GccException < Exception; end
 
-    class Gcc < Compiler
+    class Gcc < Brake::Compilers::Compiler
       include Brake::Checks
 
       def detect
@@ -16,27 +18,36 @@ module Brake
 
         @conf[:cc] = cc
 
-        logn "Checking for working C compiler... "
-      
-        raise GccException, "Compiler didn't produce a working program" 
-          unless try_compile_and_run("int main() { return 0; }\n", "c", self)
+        logn "Checking C compiler... "
 
-      rescue => e
-        log e.message, :fatal
+        unless try_compile_and_run("test1", "int main() { return 0; }\n", "c", self)
+          raise GccException, "Compiler didn't produce a working program"
+        end
+
+        logc "seems working"
+
+      rescue GccException => e
+        logc e.message, :fatal
 
         false
       else
         true
       end
+
+      def oneliner(source, target)
+        source = Shell.escape(source)
+        target = Shell.escape(target)
+
+        results = `#{@conf[:cc]} -o #{target} #{source}`
+        if $? != 0
+          log "Compiler aborted (#{results})", :fatal
+          false
+        else
+          true
+        end
+      end
     end
 
-    register :gcc, Gcc
+    #register :gcc, Gcc
   end
 end
-
-<<FROMCMAKE
-
-
-
-
-FROMCMAKE
