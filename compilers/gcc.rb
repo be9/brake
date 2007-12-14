@@ -21,12 +21,11 @@ module Brake
         raise GccException, "Compiler didn't produce a working program" 
           unless try_compile_and_run("int main() { return 0; }\n", "c", self)
 
-        rescue => e
-          log e.message, :fatal
+      rescue => e
+        log e.message, :fatal
 
-          return false
-        end
-
+        false
+      else
         true
       end
     end

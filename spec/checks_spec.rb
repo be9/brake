@@ -74,12 +74,12 @@ describe "try_compile_and_run" do
   end
   
   it "should set proper extension for source" do 
-    @compiler.should_receive(:oneliner).with(/\.c$/, an_instance_of(String))
+    @compiler.should_receive(:oneliner).with(/\.c$/, an_instance_of(String)).once.and_return(true)
     
     try_compile_and_run('name', '', 'c', @compiler)
     
     compiler2 = mock('compiler')
-    compiler2.should_receive(:oneliner).with(/\.qqq$/, an_instance_of(String))
+    compiler2.should_receive(:oneliner).with(/\.qqq$/, an_instance_of(String)).once.and_return(true)
     
     try_compile_and_run('name', '', 'qqq', compiler2)
   end
@@ -100,12 +100,13 @@ describe "try_compile_and_run" do
     SOURCE_CODE = "/* some code */\nint main() { return 0; }\n"
     @compiler.should_receive(:oneliner) do |source, target|
       IO.read(source).should == SOURCE_CODE 
+      true
     end
 
     try_compile_and_run('name', SOURCE_CODE, 'c', @compiler)
   end
 
-  it "should remove generated source code upon return" do
+  it "should remove generated files upon return" do
     @compiler.should_receive(:oneliner) do |source, target|
       @source = source
       @target = target
@@ -117,5 +118,17 @@ describe "try_compile_and_run" do
 
     File.exists?(@source).should_not == true
     File.exists?(@target).should_not == true
+  end
+
+  it "should return false if compiler failed" do
+    @compiler.should_receive(:oneliner).once.and_return(false)
+
+    try_compile_and_run('name', '', 'c', @compiler).should == false
+  end
+
+  it "should return false if compiler succeeded, but no target found" do
+    @compiler.should_receive(:oneliner).once.and_return(true)
+
+    try_compile_and_run('name', '', 'c', @compiler).should == false
   end
 end

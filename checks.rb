@@ -2,6 +2,8 @@ require 'logging'
 
 module Brake
   module Checks
+    class CheckException < Exception; end
+
     include Brake::Logging
     
     def find_program(program_name, paths = [])
@@ -32,18 +34,25 @@ module Brake
     end
 
     def try_compile_and_run(name, source_code, ext, compiler)
-        provide_temp_directory
+      provide_temp_directory
 
-        source = "./tmp/try_#{name}_#{$$}.#{ext}"
-        target = "./tmp/try_#{name}_#{$$}"
+      source = "./tmp/try_#{name}_#{$$}.#{ext}"
+      target = "./tmp/try_#{name}_#{$$}"
 
-        File.open(source, "w") do |f|
-          f.write(source_code)
-        end
+      File.open(source, "w") do |f|
+        f.write(source_code)
+      end
 
-        compiler.oneliner(source, target)
+      raise CheckException, "Compiler returned an error" unless compiler.oneliner(source, target)
+      raise CheckException, "Compiler stated success, but no target was found" unless File.exists? target
 
-        File.unlink(source)
+    rescue CheckException
+      return false
+    else
+      return true
+    ensure
+      File.unlink(source) if File.exists? source
+      File.unlink(target) if File.exists? target
     end
 
     private
