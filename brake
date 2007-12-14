@@ -4,29 +4,11 @@ require 'rake'
 require 'yaml'
 require 'singleton'
 
-ON_WINDOWS = RUBY_PLATFORM =~ /(:?mswin|mingw32)/
-
 $LOAD_PATH.unshift(File.expand_path(File.dirname(__FILE__)))
 
+require 'logging'
+
 module Brake
-  module Logging
-    # Log line
-    def log(s, level = :normal)
-       logn(s)
-       print "\n"
-    end
-
-    # Log, but stay on the same line 
-    def logn(s, level = :normal)
-      print "-- " + s
-    end
-    
-    # Continue log line
-    def logc(s)
-      print s, "\n"
-    end
-  end
-
   class << self
     # Current Brake Application
     def application
@@ -68,37 +50,6 @@ module Brake
       File.open(@cache_file_name, "w") do |f|
         YAML.dump(@cache, f)
       end
-    end
-  end
-
-  module Checks
-    include Brake::Logging
-
-    def find_program(program_name, paths = [])
-      test_block = 
-        if ON_WINDOWS then 
-          proc do |f| File.exists?(f) end
-        else
-          proc do |f| File.executable?(f) end
-        end
-
-      logn("Checking for program #{program_name}...")
-
-      (paths + ENV['PATH'].split(':')).each do |path|
-        fname = File.join(path, program_name)
-        fname += ".exe" if ON_WINDOWS
-    
-        if test_block.call(fname)
-          fname = File.expand_path(fname)
-
-          logc(" found at #{fname}")
-
-          return fname
-        end
-      end
-    
-      logc(" not found")
-      nil
     end
   end
 
