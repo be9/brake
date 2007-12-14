@@ -31,6 +31,10 @@ module Brake
       def cache
         Brake.cache
       end
+
+      def known_extensions
+        []
+      end
     end
   end
 end

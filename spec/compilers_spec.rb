@@ -41,4 +41,10 @@ describe "compiler" do
     # would raise upon second call of detect
     @compiler.probe
   end
+
+  it "should not support any extensions" do
+    @compiler.known_extensions.should == []
+    detector(true)
+    @compiler.known_extensions.should == []
+  end
 end

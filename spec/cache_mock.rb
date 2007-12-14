@@ -11,7 +11,7 @@ module CacheMock
 
     @cache.should_receive(:[]) do |arg|
       @cache_hash[arg]
-    end.at_least(:once)
+    end.any_number_of_times
 
     Brake.cache = @cache
   end

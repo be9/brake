@@ -135,7 +135,7 @@ describe "try_compile_and_run" do
     try_compile_and_run('name', '', 'c', @compiler).should.nil? 
   end
   
-  it "should return "" if compiler succeeded and target ran successfully" do
+  it "should return empty string if compiler succeeded and target ran successfully" do
     @compiler.should_receive(:oneliner) do |source, target|
       File.symlink("/bin/true", target)
 
