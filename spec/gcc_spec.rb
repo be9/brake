@@ -164,10 +164,15 @@ describe "gcc" do
     @compiler.compiler_for_source_file("test.c").should == :cc
   end
   
-  it "should run C compiler for files with C++ extensions" do
+  it "should run C++ compiler for files with C++ extensions" do
     ["cxx","cpp","c++","cc","C"].each do |ext|
       @compiler.compiler_for_source_file("test.#{ext}").should == :cxx
     end
+  end
+
+  it "should not compile an invalid program" do
+    @compiler.probe
+    try_compile_and_run('testgcc', 'an invalid C code', 'c', @compiler).should.nil?
   end
 
 end
