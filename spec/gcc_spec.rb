@@ -1,10 +1,15 @@
 require File.dirname(__FILE__) + '/spec_helper'
 require 'tmpdir'
-require 'compilers/gcc'
 require 'cache_mock'
 require 'checks'
+require 'compilers/gcc'
 
 include Brake::Checks
+
+module Brake
+  class CompilerPool
+  end
+end
 
 describe "gcc" do
   include CacheMock
@@ -33,6 +38,10 @@ describe "gcc" do
     ENV['PATH'] = @path
     Dir["#{@tmpdir}/*"].each { |f| File.unlink(f) }
     ['CC', 'CXX'].each { |e| ENV[e] = nil }
+  end
+
+  it "should have registered itself in the compiler pool" do
+    Brake::CompilerPool.registered?(:gcc)
   end
 
   it "should respect :cc in options" do
@@ -174,5 +183,8 @@ describe "gcc" do
     @compiler.probe
     try_compile_and_run('testgcc', 'an invalid C code', 'c', @compiler).should.nil?
   end
+
+  it "should properly handle invalid extension (like source.qqq)"
+  it "should not compile an invalid C++ program"
 
 end
